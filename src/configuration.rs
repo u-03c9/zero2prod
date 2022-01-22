@@ -59,17 +59,24 @@ impl DatabaseSettings {
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let mut settings = config::Config::default();
     let base_path = std::env::current_dir().expect("Failed to determine the current direcotry");
-    let configuratio_directory = base_path.join("configuration");
+    let configuration_directory = base_path.join("configuration");
 
-    settings.merge(config::File::from(configuratio_directory.join("base")).required(true))?;
+    settings.merge(config::File::from(configuration_directory.join("base")).required(true))?;
 
     let environment: Environment = std::env::var("APP_ENVIRONMENT")
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT.");
 
+    if environment == Environment::Production {
+        let secrets_directory = std::path::Path::new("/etc/secrets/");
+        settings.merge(
+            config::File::from(secrets_directory.join("email_client.yaml")).required(true),
+        )?;
+    }
+
     settings.merge(
-        config::File::from(configuratio_directory.join(environment.as_str())).required(true),
+        config::File::from(configuration_directory.join(environment.as_str())).required(true),
     )?;
 
     settings.merge(config::Environment::with_prefix("app").separator("__"))?;
@@ -77,6 +84,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     settings.try_into()
 }
 
+#[derive(PartialEq, Eq)]
 pub enum Environment {
     Local,
     Production,

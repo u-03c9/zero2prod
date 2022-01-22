@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: zero2prod
+    plan: free
+    region: frankfurt
+    autoDeploy: false
+    env: docker
+    repo: https://github.com/u-03c9/zero2prod.git
+    branch: render
+    numInstances: 1
+    healthCheckPath: /health_check
+    envVars:
+      - key: APP_APPLCIATION__BASE_URL
+        value: CHANGEME.render.com
+      - key: APP_DATABASE__USERNAME
+        fromDatabase:
+          name: newsletter
+          property: user
+      - key: APP_DATABASE__PASSWORD
+        fromDatabase:
+          name: newsletter
+          property: password
+      - key: APP_DATABASE__HOST
+        value: frankfurt-postgres.render.com
+      - key: APP_DATABASE__PORT
+        fromDatabase:
+          name: newsletter
+          property: port
+      - key: APP_DATABASE__DATABASE_NAME
+        fromDatabase:
+          name: newsletter
+          property: database
+
+databases:
+  - name: newsletter
+    databaseName: newsletter
+    plan: free
+    region: frankfurt

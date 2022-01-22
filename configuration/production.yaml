@@ -2,6 +2,3 @@ application:
   host: 0.0.0.0
 database:
   require_ssl: true
-email_client:
-  base_url: "https://api.elasticemail.com/v2/email/send"
-  sender_email: "questions-sender@gmail.com"

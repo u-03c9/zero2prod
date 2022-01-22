@@ -34,6 +34,7 @@ impl EmailClient {
         text_content: &str,
     ) -> Result<(), reqwest::Error> {
         let request_body = SendEmailRequest {
+            apikey: self.authorization_token.expose_secret(),
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
             subject,
@@ -42,7 +43,6 @@ impl EmailClient {
         };
         self.http_client
             .post(&self.base_url)
-            .header("apikey", self.authorization_token.expose_secret())
             .json(&request_body)
             .send()
             .await?
@@ -54,6 +54,7 @@ impl EmailClient {
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SendEmailRequest<'a> {
+    apikey: &'a str,
     from: &'a str,
     to: &'a str,
     subject: &'a str,
@@ -68,7 +69,7 @@ mod tests {
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
     use secrecy::Secret;
-    use wiremock::matchers::{any, header, header_exists, method};
+    use wiremock::matchers::{any, header, method};
     use wiremock::Request;
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -122,9 +123,8 @@ mod tests {
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
 
-        Mock::given(header_exists("apikey"))
+        Mock::given(method("POST"))
             .and(header("Content-Type", "application/json"))
-            .and(method("POST"))
             .and(SendEmailBodyMatcher)
             .respond_with(ResponseTemplate::new(200))
             .expect(1)

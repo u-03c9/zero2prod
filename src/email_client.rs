@@ -26,13 +26,14 @@ impl EmailClient {
             authorization_token,
         }
     }
+
     pub async fn send_email(
         &self,
         recipient: SubscriberEmail,
         subject: &str,
         html_content: &str,
         text_content: &str,
-    ) -> Result<(), reqwest::Error> {
+    ) -> Result<(), SendEmailError> {
         let request_body = SendEmailRequest {
             apikey: self.authorization_token.expose_secret(),
             from: self.sender.as_ref(),
@@ -41,14 +42,54 @@ impl EmailClient {
             body_html: html_content,
             body_text: text_content,
         };
-        self.http_client
+        let response = self
+            .http_client
             .post(&self.base_url)
-            .json(&request_body)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .form(&request_body)
             .send()
             .await?
             .error_for_status()?;
+
+        let response_body = response.json::<SendEmailResponse>().await?;
+
+        if !response_body.success {
+            return Err(SendEmailError::EmailAPIError(
+                response_body
+                    .error
+                    .unwrap_or_else(|| String::from("Unknown email API error!")),
+            ));
+        }
+
         Ok(())
     }
+}
+
+#[derive(thiserror::Error)]
+pub enum SendEmailError {
+    #[error("{0}")]
+    EmailAPIError(String),
+    #[error(transparent)]
+    UnexpectedError(#[from] reqwest::Error),
+}
+
+impl std::fmt::Debug for SendEmailError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+pub fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -60,6 +101,13 @@ struct SendEmailRequest<'a> {
     subject: &'a str,
     body_html: &'a str,
     body_text: &'a str,
+}
+
+#[derive(serde::Deserialize)]
+struct SendEmailResponse {
+    success: bool,
+    _data: Option<String>,
+    error: Option<String>,
 }
 
 #[cfg(test)]
@@ -124,8 +172,7 @@ mod tests {
         let email_client = email_client(mock_server.uri());
 
         Mock::given(method("POST"))
-            .and(header("Content-Type", "application/json"))
-            .and(SendEmailBodyMatcher)
+            .and(header("Content-Type", "application/x-www-form-urlencoded"))
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)

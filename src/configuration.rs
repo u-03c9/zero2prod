@@ -58,7 +58,7 @@ impl DatabaseSettings {
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let mut settings = config::Config::default();
-    let base_path = std::env::current_dir().expect("Failed to determine the current direcotry");
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
     let configuration_directory = base_path.join("configuration");
 
     settings.merge(config::File::from(configuration_directory.join("base")).required(true))?;
@@ -118,13 +118,17 @@ impl TryFrom<String> for Environment {
 pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
+    pub sender_name: String,
     pub authorization_token: Secret<String>,
     pub timeout_milliseconds: u64,
 }
 
 impl EmailClientSettings {
-    pub fn sender(&self) -> Result<SubscriberEmail, String> {
-        SubscriberEmail::parse(self.sender_email.clone())
+    pub fn sender(&self) -> Result<(SubscriberEmail, String), String> {
+        Ok((
+            SubscriberEmail::parse(self.sender_email.clone())?,
+            self.sender_name.to_owned(),
+        ))
     }
 
     pub fn timeout(&self) -> std::time::Duration {

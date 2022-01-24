@@ -10,7 +10,7 @@ services:
     numInstances: 1
     healthCheckPath: /health_check
     envVars:
-      - key: APP_APPLCIATION__BASE_URL
+      - key: APP_APPLICATION__BASE_URL
         value: CHANGEME.render.com
       - key: APP_DATABASE__USERNAME
         fromDatabase:

@@ -20,4 +20,6 @@ email_client:
   sender_email: {{ verified email address }}
   sender_name: {{ will appear in the received emails }}
   authorization_token: {{ apikey }}
+application:
+  hmac_secret: {{ super long random key to verify message integrity }}
 ```

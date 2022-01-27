@@ -12,6 +12,13 @@ services:
     envVars:
       - key: APP_APPLICATION__BASE_URL
         value: CHANGEME.render.com
+      - key: APP_APPLICATION__HMAC_SECRET
+        generateValue: true
+      - key: APP_REDIS_URI
+        fromService:
+          - name: redis
+          - type: pserv
+          - property: connectionString
       - key: APP_DATABASE__USERNAME
         fromDatabase:
           name: newsletter
@@ -30,6 +37,13 @@ services:
         fromDatabase:
           name: newsletter
           property: database
+      - key: APP_
+  - type: pserv
+    name: redis
+    plan: free
+    region: frankfurt
+    env: docker
+    maxmemory-policy: allkeys-lru
 
 databases:
   - name: newsletter

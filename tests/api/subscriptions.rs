@@ -25,11 +25,6 @@ async fn subscribe_persists_the_new_subscriber() {
 
     app.post_subscriptions(body.into()).await;
 
-    Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200))
-        .mount(&app.email_server)
-        .await;
-
     let saved = sqlx::query!("SELECT email, name, status FROM subscriptions",)
         .fetch_one(&app.db_pool)
         .await
